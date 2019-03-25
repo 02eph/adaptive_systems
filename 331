@@ -1,0 +1,119 @@
+'''
+стр 331 адаптивность 
+'''
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from numpy import linalg as LA
+import scipy as sp 
+import math 
+import pylab
+from matplotlib import mlab
+
+H = np.matrix('1 0; 0 1')
+R = np.matrix('0.32 0; 0 0.35')
+xo0 = np.matrix('7; -1.3')
+Px0 = np.matrix('1 0; 0 1')
+An = np.matrix('0 1; -0.4 -1.4')
+Bn = np.matrix('0; 1.3')
+Fn = np.matrix('0.51 0; 0 0.55')
+D = 1
+x0 = np.matrix('10; -1') 
+
+theta0 = np.matrix('-0.4;-1.4;1.3')
+Ptheta0 = np.matrix('1 0 0; 0 1 0; 0 0 1')
+I = np.matrix('1 0 ; 0 1 ')
+A = I+0.1*An
+B = 0.1*Bn
+F = math.sqrt(0.1)*Fn
+delta_t = 0.1
+Dd = delta_t*D  #ЧИСЛО А НЕ МАТРИЦА УБРАТЬ 10 из риккати Dd
+
+
+e = 0.0001
+G0 = I
+C = np.matrix('1.5 0; 0 1.7')
+Cd = C*delta_t
+
+norma = 1
+N = 100
+
+S0 = np.matrix('0 0; 0 0')
+S1 = A.transpose()*S0+S0*A-S0*B*10*B.transpose()*S0-S0+Cd
+while (LA.norm(S1-S0)/LA.norm(S1) > e):
+	S0 = S1
+	S1 = A.transpose()*S0+S0*A-S0*B*10*B.transpose()*S0-S0+Cd
+print(S1)
+
+x = x0
+xo = xo0
+Px = Px0
+u = 0
+theta = theta0
+Ptheta = Ptheta0
+Q = np.matrix('1 0 ; 0 1 ')
+u1 = []
+
+x1 = []
+x2 = []
+
+xo1 = []
+xo2 = []
+
+for i in range (N):
+	Atheta0 = [[1 , delta_t],[delta_t*theta[0,0], 1+delta_t*theta[1,0]]]
+	Atheta = np.matrix('0 0;0 0')+Atheta0
+	Btheta0 = [[0],[delta_t*theta[2,0]]]
+	Btheta = np.matrix('0 ; 0')+Btheta0
+	
+	u = -10*Btheta.transpose()*S1*x
+	xk1 = A*x+B*u+F*[[np.random.normal(0,1)],[np.random.normal(0,1)]]
+	fi0 = [[ 0, 0, 0],[delta_t*x[0,0], delta_t*x[1,0], delta_t*u]]
+	fi = np.matrix('0 0 0;0 0 0')+fi0
+	fs = [[x[0,0]+delta_t*x[1,0]],[x[1,0]]]
+	y = H*xk1+H*[[np.random.normal(0,math.sqrt(R[0,0]))],[np.random.normal(0,math.sqrt(R[1,1]))]]
+	M = H*fi*Ptheta*fi.transpose()*H.transpose()+H*F*Q*F.transpose()*H.transpose()+R
+	L = Ptheta*fi.transpose()*H.transpose()*LA.matrix_power(M,-1)
+	Ptheta = (Ptheta0 - L*H*fi)*Ptheta
+	thetak1 = theta+L*(y-H*fi*theta-H*fi)
+	Q = np.matrix('1 0; 0 1')
+	Psk = Atheta*Px*Atheta.transpose()+F*Q*F.transpose()
+	K = Psk*H.transpose()*LA.matrix_power(H*Psk*H.transpose()+R,-1)
+	Px = (I-K*H)*Psk
+	xk = Atheta*xo+Btheta*u
+	xok1 = xk+K*(y-H*xk)
+
+
+	x = xk1
+	
+	theta = thetak1
+	xo = xok1
+
+	u1.append(u[0,0])
+	
+	x1.append(x[0,0])
+	x2.append(x[1,0])
+
+	xo1.append(xo[0,0])
+	xo2.append(xo[1,0])
+
+
+
+
+pylab.subplot (1, 1, 1)
+pylab.plot ( u1)
+
+
+pylab.subplot (1, 1, 1)
+pylab.plot ( xo1)
+pylab.subplot (1, 1, 1)
+pylab.plot ( x1)
+
+
+pylab.subplot (1, 1, 1)
+pylab.plot ( xo2)
+pylab.subplot (1, 1, 1)
+pylab.plot ( x2)
+pylab.show()
+
+
