@@ -1,0 +1,126 @@
+import numpy as np
+from numpy import linalg as LA
+import scipy as sp 
+import matplotlib.pyplot as plt
+import math 
+import pylab
+
+An = np.matrix('-0.007 0.4436 0 0; 0.0142 -0.167 0 0; 0 0 -0.00356 0; 0 1 0 0')
+Bn = np.matrix('0.0161 0; 0.0085 0; 0 0.97; 0 0')
+Fn = np.matrix('0.001 0 0; 0 0.00017 0; 0 0 0.01; 0 0 0')
+
+x0 = np.matrix('0; 0; 0; 0.25')
+xo0 = np.matrix('0; 0; 0; 0.15')
+xZ = np.matrix('0; 0; 0; -0.2')
+onem4 = np.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1')
+delta_t = 0.1
+A = onem4 + delta_t * An
+B = delta_t * Bn
+F = math.sqrt(delta_t) * Fn
+R = np.matrix('0.00004 0 0 0; 0 0.000025 0 0; 0 0 0.01 0; 0 0 0 0.0015')
+N = 800
+Px0 = np.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1')
+
+C = np.matrix('0.0001 0 0 0; 0 0.01 0 0; 0 0 0.004 0; 0 0 0 27000')
+D = np.matrix('1 0; 0 1')
+H = np.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1')
+uMin1 = -0.61
+uMax1 = 0.61
+uMin2 = -0.01
+uMax2 = 0.01
+e = 0.01
+I = np.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1')
+G0 = I
+norma = 1
+
+G0 = np.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1')
+
+
+u1 = []
+u2 = []
+x1 = []
+x2 = []
+x3 = []
+x4 = []
+xo1 = []
+xo2 = []
+xo3 = []
+xo4 = []
+
+while norma > e: 
+	G1=(A.transpose()*G0*A-A.transpose()*G0*B*LA.matrix_power(B.transpose()*G0*B+D, -1) * B.transpose() * G0 * A + C-G0) * delta_t+G0
+	norma = LA.norm(G1-G0) / LA.norm(G1)
+	G0 = G1
+RIC = G0
+print("решение рикатти" , RIC)
+
+x = x0
+xo = xo0
+u = np.matrix('0; 0')
+P = Px0
+
+for k in range(0, N):
+	xz = np.array([[0],[0], [0], [0.25 -(k*0.45/N)]])
+	u = -(LA.matrix_power(B.transpose() * RIC * B + D, -1)) * B.transpose() * RIC * A * (xo-xz)
+	
+	if u[0,0] < uMin1:
+		u[0,0] = uMin1
+	if u[0,0] > uMax1:
+		u[0,0] = uMax1
+	if u[1,0] < uMin2:
+		u[1,0] = uMin2
+	if u[1,0] > uMax2:
+		u[1,0] = uMax2
+	
+	xk1 = A*x+B*u+F*np.random.normal(0, 1, (3,1))
+	y = H*xk1+[[np.random.normal(0,math.sqrt(R[0,0]))],[np.random.normal(0,math.sqrt(R[1,1]))],[np.random.normal(0,math.sqrt(R[2,2]))],[np.random.normal(0,math.sqrt(R[3,3]))]]
+	x = xk1
+	xk = A * xo + B * u
+	Pk = A * P * A.transpose() + F * F.transpose()
+	K = Pk * H.transpose() * LA.matrix_power(H*Pk*H.transpose()+R , -1)
+	Pk1 = (np.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1') - K * H ) * Pk
+	xok1 = xk + K * (y - H * xk)
+	xo = xok1
+	u1.append(u[0,0])
+	u2.append(u[1,0])
+	x1.append(x[0,0])
+	x2.append(x[1,0])
+	x3.append(x[2,0])
+	x4.append(x[3,0])
+	xo1.append(xo[0,0])
+	xo2.append(xo[1,0])
+	xo3.append(xo[2,0])
+	xo4.append(xo[3,0])
+
+
+pylab.subplot (2, 4, 1)
+pylab.plot ( u1)
+
+pylab.title ("u11")
+
+pylab.subplot (2, 4, 2)
+pylab.plot ( u2)
+pylab.title ("u11")
+
+pylab.subplot (2, 4, 5)
+pylab.plot ( xo1)
+pylab.plot ( x1)
+pylab.title ("x1, xo1")
+
+pylab.subplot (2, 4, 6)
+pylab.plot ( xo2)
+pylab.plot ( x2)
+pylab.title ("x2, xo2")
+
+
+pylab.subplot (2, 4, 7)
+pylab.plot ( xo3)
+pylab.plot ( x3)
+pylab.title ("x3, xo3")
+
+pylab.subplot (2, 4, 8)
+pylab.plot ( xo4)
+pylab.plot ( x4)
+pylab.title ("x4, xo4")
+
+pylab.show()
