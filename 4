@@ -1,0 +1,173 @@
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from numpy import linalg as LA
+import scipy as sp 
+import math 
+import pylab
+from matplotlib import mlab
+
+Atao1 = np.matrix('-0.007 0.444	0 0; 0.0142	-0.167 0 0; 0 0	-0.00353 0; 0 1	0 0')
+Btao1 = np.matrix('0.0158	0;0.0084 0; 0 0.1; 0 0')
+Ftao1 = np.matrix('0.001 0 0; 0 0.00017 0;0 0 0.01;0 0 0')
+tao=np.matrix('1 40 60')
+A21=np.matrix('0.0142 0.0185 0.0244')
+A22=np.matrix('-0.167 -0.192 -0.220')
+A33=np.matrix('-0.0353 -0.040 -0.046')
+B11=np.matrix('0.0158 0.0184 0.021')
+B21=np.matrix('0.0084 0.0108 0.0146')
+B32=np.matrix('0.1 0.087 0.076')
+F22=np.matrix('0.00017 0.00018 0.00020')
+F33=np.matrix('0.01 0.0101 0.0103')
+delta_t=0.1
+N = 600
+uMin1 = -0.61
+uMax1 = 0.61
+uMin2 = -0.01
+uMax2 = 0.01
+bettaMin = -0.46
+bettaMax = 0.46
+omegaMin = -0.174
+omegaMax = 0.174
+vMin = -0.5
+vMax = 0.5
+deltaPsiMin = -0.053
+deltaPsiMax = 0.053
+e = 0.01
+psizTao1 = 0.1
+psizTao2 = 0.3
+psizTao3 = -0.4
+I = np.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1')
+def L(arr):
+	result=[]
+	for k in range(N):
+		t=k*0.1
+		s=0
+		for i in range(3):
+			m=1
+			for j in range(3):
+				if i!=j:
+					m=m*(t-tao[0,j])/(tao[0,i]-tao[0,j])
+			s=s+arr[0,i]*m
+		result.append(s)
+	return result
+
+L2A21 = L(A21)
+L2A22 = L(A22)
+L2A33 = L(A33)
+L2B11 = L(B11)
+L2B21 = L(B21)
+L2B32 = L(B32)
+L2F22 = L(F22)
+L2F33 = L(F33)
+H = np.matrix('0 0 0 1')
+R = 0.0015
+xo0 = np.matrix('0; 0; 0; 0.15')
+Px0 = np.matrix('1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1')
+S = np.matrix('0 1 0 0; 0 0 0 1')
+x0 = np.matrix('0; 0; 0; 0.25')
+x = x0
+Px = Px0
+e = 0.01
+G0 = I
+D = np.matrix('1 0; 0 1')
+Dd = delta_t*D
+
+xo=xo0
+C = np.matrix('0.00008 0 0 0; 0 0.01 0 0; 0 0 0.04 0; 0 0 0 65370')
+Cd = C*delta_t
+Cs = S*C*S.transpose()
+
+
+u1 = []
+
+x1 = []
+x2 = []
+
+xo1 = []
+xo2 = []
+for i in range (N):
+	At = np.array([[-0.007, 0.444, 0, 0],[ L2A21[i], L2A22[i], 0, 0],[0, 0, L2A33[i], 0],[ 0, 1, 0, 0]])
+	A = I+0.1*At
+	Bt = np.array([[L2B11[i], 0], [L2B21[i], 0], [0, L2B32[i]],[0, 0]])
+	B = 0.1*Bt
+	Ft = np.matrix([[0.001, 0, 0],[0, L2F22[i], 0], [0, 0, L2F33[i]], [0, 0, 0]])
+	F = math.sqrt(0.1)*Ft
+
+	S0 = np.matrix('0 0 0 0; 0 0 0 0;0 0 0 0;0 0 0 0')
+	S1 = A.transpose()*S0+S0*A-S0*B*Dd.transpose()*B.transpose()*S0-S0+Cd
+	while (LA.norm(S1-S0)/LA.norm(S1) > e):
+		S0 = S1
+		S1 = A.transpose()*S0+S0*A-S0*B*Dd.transpose()*B.transpose()*S0-S0+Cd
+
+
+	u = -LA.matrix_power(B.transpose()*S.transpose()*Cs*S*B+D, -1)*B.transpose()*S.transpose()*Cs*(S*A*xo+S*F*[[np.random.normal(0,1)],[np.random.normal(0,1)],[np.random.normal(0,1)]]-S*x)
+	if u[0,0] < uMin1:
+		u[0,0] = uMin1
+	if u[0,0] > uMax1:
+		u[0,0] = uMax1
+	if u[1,0] < uMin2:
+		u[1,0] = uMin2
+	if u[1,0] > uMax2:
+		u[1,0] = uMax2
+
+	xk1 = A*x+B*u
+	y = H*xk1+H*[[np.random.normal(0,math.sqrt(R))],[np.random.normal(0,math.sqrt(R))],[np.random.normal(0,math.sqrt(R))],[np.random.normal(0,math.sqrt(R))]]
+	xok = A*xo+B*u+F*[[np.random.normal(0,1)],[np.random.normal(0,1)],[np.random.normal(0,1)]]
+	Pxk = A*Px*A.transpose()+F*F.transpose()
+	K = Pxk*H.transpose()*LA.matrix_power(H*Pxk*H.transpose()+R ,-1)
+	Px = (I-K*H)*Pxk
+	xok1 = xok+K*(y-H*xok)
+	x = xk1
+	if x[0,0]<bettaMin:
+		x[0,0] = bettaMin
+	if x[0,0]>bettaMax:
+		x[0,0] = bettaMax
+	if x[1,0]<omegaMin:
+		x[1,0] = omegaMin
+	if x[1,0]>omegaMax:
+		x[1,0] = omegaMax
+	if x[2,0] <vMin:
+		x[2,0] = vMin
+	if x[2,0] >vMax:
+		x[2,0] =vMax 
+	if x[3,0] < deltaPsiMin:
+		x[3,0] = deltaPsiMin
+	if x[3,0] > deltaPsiMax:
+		x[3,0] = deltaPsiMax
+	xo = xok1
+	print(x)
+	u1.append(u[0,0])
+	
+	x1.append(x[0,0])
+	x2.append(x[1,0])
+
+	xo1.append(xok[0,0])
+	xo2.append(xok[1,0])
+
+
+
+
+pylab.subplot (1, 1, 1)
+pylab.plot ( u1)
+
+
+pylab.subplot (1, 1, 1)
+pylab.plot ( xo1)
+pylab.subplot (1, 1, 1)
+pylab.plot ( x1)
+
+
+pylab.subplot (1, 1, 1)
+pylab.plot ( xo2)
+pylab.subplot (1, 1, 1)
+pylab.plot ( x2)
+pylab.show()
+
+
+
+
+
+
+
+	
