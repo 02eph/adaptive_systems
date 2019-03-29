@@ -87,11 +87,7 @@ norma = 1
 C = np.matrix('0.00008 0 0 0; 0 0.01 0 0; 0 0 0.04 0; 0 0 0 65370')
 R = np.matrix('0.00004 0 0 0; 0 0.000025 0 0; 0 0 0.01 0; 0 0 0 0.0015')
 
-while norma > e: 
-	G1 = (Atao1.transpose()*G0*Atao1-Atao1.transpose()*G0*Btao1*LA.matrix_power(Btao1.transpose()*G0*Btao1+D, -1)*Btao1.transpose()*G0*Atao1+C-G0)*delta_t+G0
-	norma = LA.norm(G1-G0)/LA.norm(G1)
-	G0 = G1
-RIC = G0
+
 
 u1 = []
 u2 = []
@@ -111,6 +107,12 @@ for i in range (N):
 	B = 0.1*Bt
 	Ft = np.matrix([[0.001, 0, 0],[0, L2F22[i], 0], [0, 0, L2F33[i]], [0, 0, 0]])
 	F = math.sqrt(0.1)*Ft
+
+	while norma > e: 
+		G1 = (A.transpose()*G0*A-A.transpose()*G0*B*LA.matrix_power(B.transpose()*G0*B+D, -1)*B.transpose()*G0*A+C-G0)*delta_t+G0
+		norma = LA.norm(G1-G0)/LA.norm(G1)
+		G0 = G1
+	RIC = G0
 
 	xz = np.array([[0],[0], [0], [0.25 -(i*0.45/N)]])
 	u = -(LA.matrix_power(B.transpose() * RIC * B + D, -1)) * B.transpose() * RIC * A * (xo-xz)
