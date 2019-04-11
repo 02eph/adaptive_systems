@@ -1,0 +1,264 @@
+
+from tkinter import *
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from numpy import linalg as LA
+import scipy as sp 
+import math 
+import pylab
+from matplotlib import mlab
+
+
+
+real_root=Tk()
+def on_configure(event):
+    # update scrollregion after starting 'mainloop'
+    # when all widgets are in canvas
+    canvas.configure(scrollregion=canvas.bbox('all'))
+
+
+# --- create canvas with scrollbar ---
+
+canvas = Canvas(real_root)
+canvas.pack(side=LEFT, fill=BOTH)
+
+scrollbar = Scrollbar(real_root, command=canvas.yview)
+scrollbar.pack(side=RIGHT, fill='y')
+
+canvas.configure(yscrollcommand = scrollbar.set)
+
+# update scrollregion after starting 'mainloop'
+# when all widgets are in canvas
+canvas.bind('<Configure>', on_configure)
+
+# --- put frame in canvas ---
+
+frame = Frame(canvas)
+canvas.create_window((0,0), window=frame, anchor='nw')
+
+l = Frame(frame, width=400,height=2000)
+l.pack()
+
+
+class SimpleTableInput(Frame):
+    def __init__(self, parent, rows, columns):
+        Frame.__init__(self, parent)
+
+        self._entry = {}
+        self.rows = rows
+        self.columns = columns
+
+        # register a command to use for validation
+        vcmd = (self.register(self._validate), "%P")
+
+        # create the table of widgets
+        for row in range(self.rows):
+            for column in range(self.columns):
+                index = (row, column)
+                e = Entry(self, validate="key", validatecommand=vcmd)
+                e.grid(row=row, column=column, stick="nsew")
+                self._entry[index] = e
+        # adjust column weights so they all expand equally
+        for column in range(self.columns):
+            self.grid_columnconfigure(column, weight=1)
+        # designate a final, empty row to fill up any extra space
+        self.grid_rowconfigure(rows, weight=1)
+
+    def get(self):
+        '''Return a list of lists, containing the data in the table'''
+        result = []
+        for row in range(self.rows):
+            current_row = []
+            for column in range(self.columns):
+                index = (row, column)
+                current_row.append(self._entry[index].get())
+            result.append(current_row)
+        return result
+
+    def _validate(self, P):
+        '''Perform input validation. 
+
+        Allow only an empty value, or a value that can be converted to a float
+        '''
+        if P.strip() == "":
+            return True
+
+        try:
+            f = float(P)
+        except ValueError:
+            self.bell()
+            return False
+        return True
+
+
+nLabel = Label(frame, text="Адаптивные системы")
+
+nLabel.place(x=0,y=0)
+t1Label = Label(frame,  text="Математическая модель судна задана в виде")
+t1Label.place(x=0,y=30)
+t2Label = Label(frame, text="x(t) = A(t)x(t) + B(t)u(t) + F(t)q(t)")
+t2Label.place(x=0, y=50)
+t3Label = Label(frame, text="где компоненты векторов состояния")
+t3Label.place(x=0, y=70)
+t4Label = Label(frame, text="x(t) = (x1(t), x2(t), x3(t), x4(t))T = (beta, omega, v, psi)T")
+t4Label.place(x=0, y=90)
+t5Label = Label(frame, text="и управления")
+t5Label.place(x=0, y=110)
+t6Label = Label(frame, text="u(t) = (u1(t)=delta, u2=(t))T")
+t6Label.place(x=0, y=130)
+t7Label = Label(frame, text="модели объекта имеют следующий смысл")
+t7Label.place(x=0, y=150)
+t8Label = Label(frame, text="beta - отклонение угла дрейфа, рад;")
+t8Label.place(x=0, y=170)
+t9Label = Label(frame, text="omega - отклонение угловой скорости дрейфа, рад/с;")
+t9Label.place(x=0, y=190)
+t10Label = Label(frame, text="v - отклонение скорости движения, м/с;")
+t10Label.place(x=0, y=210)
+t11Label = Label(frame, text="psi - отклонение угла курса, рад;")
+t11Label.place(x=0, y=230)
+t12Label = Label(frame, text="u1 = delta - отклонение угла перекладки руля, рад;")
+t12Label.place(x=0, y=250)
+t13Label = Label(frame, text="u2 - отклонение режима работы главного двигателя.")
+t13Label.place(x=0, y=270)
+t14Label = Label(frame, text="Cтационарная модель")
+t14Label.place(x=0, y = 300 )
+
+ASLLabel = Label(frame, text="A - матрица динамики объекта")
+ASLLabel.place(x=0, y=320)
+ASLLabel = Label(frame, text="A = ")
+ASLLabel.place(x=0, y= 340)
+AS = SimpleTableInput(frame, 4,4)
+AS.place(x=30, y= 340)
+
+BSLLabel = Label(frame, text="B - матрица влияния управляющих воздействий")
+BSLLabel.place(x=0, y=420)
+BSLLabel = Label(frame, text="B = ")
+BSLLabel.place(x=0, y= 440)
+BS = SimpleTableInput(frame, 4,2)
+BS.place(x=30, y= 440)
+
+FSLLabel = Label(frame, text="F - матрица влияния внешних возмущений")
+FSLLabel.place(x=0, y=520)
+FSLLabel = Label(frame, text="F = ")
+FSLLabel.place(x=0, y= 540)
+FS = SimpleTableInput(frame, 4,4)
+FS.place(x=30, y= 540)
+
+x0sLLabel = Label(frame, text = "x0 -  + размерность ")
+x0sLLabel.place(x=0, y= 620)
+x0Label = Label(frame, text = "x0 = ")
+x0Label.place(x=0, y= 640)
+x0S = SimpleTableInput(frame, 1,4)
+x0S.place(x=30, y= 640)
+
+xo0sLLabel = Label(frame, text = "xo0 - оценка  + размерность ")
+xo0sLLabel.place(x=0, y= 670)
+xo0Label = Label(frame, text = "xo0 = ")
+xo0Label.place(x=0, y= 690)
+xo0S = SimpleTableInput(frame, 1,4)
+xo0S.place(x=35, y= 690)
+
+delta_tSLLabel = Label(frame, text = "delta_t = ")
+delta_tSLLabel.place(x=0, y= 720)
+delta_tSLabel = Entry(frame)
+delta_tSLabel.place(x=55, y= 720)
+
+NSLLabel = Label(frame, text = "N = ")
+NSLLabel.place(x=160, y= 720)
+NSLabel = Entry(frame)
+NSLabel.place(x=185, y= 720)
+
+RSLLabel = Label(frame, text="R - ")
+RSLLabel.place(x=0, y=750)
+RSLabel = Label(frame, text="R = ")
+RSLabel.place(x=0, y= 770)
+RS = SimpleTableInput(frame, 4,4)
+RS.place(x=30, y= 770)
+
+CSLLabel = Label(frame, text="C -")
+CSLLabel.place(x=0, y=850)
+CSLabel = Label(frame, text="C = ")
+CSLabel.place(x=0, y= 870)
+CS = SimpleTableInput(frame, 4,4)
+CS.place(x=30, y= 870)
+
+DSLLabel = Label(frame, text="D - ")
+DSLLabel.place(x=0, y=970)
+DSLabel = Label(frame, text="D = ")
+DSLabel.place(x=0, y= 990)
+DS = SimpleTableInput(frame, 2,2)
+DS.place(x=30, y= 990)
+
+HSLLabel = Label(frame, text="H - ")
+HSLLabel.place(x=0, y=1040)
+HSLabel = Label(frame, text="H = ")
+HSLabel.place(x=0, y= 1060)
+HS = SimpleTableInput(frame, 4,4)
+HS.place(x=30, y= 1060)
+
+Px0SLLabel = Label(frame, text="Px0 - ")
+Px0SLLabel.place(x=0, y=1160)
+Px0SLabel = Label(frame, text="Px0 = ")
+Px0SLabel.place(x=0, y= 1180)
+Px0S = SimpleTableInput(frame, 4,4)
+Px0S.place(x=40, y= 1180)
+
+uMaxPSLLabel = Label(frame, text = "uMaxP = ")
+uMaxPSLLabel.place(x=0, y= 1280)
+uMaxPSLabel = Entry(frame)
+uMaxPSLabel.place(x=50, y= 1280)
+
+uMaxNSLLabel = Label(frame, text = "uMaxN = ")
+uMaxNSLLabel.place(x=150, y= 1280)
+uMaxNSLabel = Entry(frame)
+uMaxNSLabel.place(x=200, y= 1280)
+
+uMinPSLLabel = Label(frame, text = "uMinP = ")
+uMinPSLLabel.place(x=0, y= 1310)
+uMinPSLabel = Entry(frame)
+uMinPSLabel.place(x=50, y= 1310)
+
+uMinNSLLabel = Label(frame, text = "uMinN = ")
+uMinNSLLabel.place(x=150, y= 1310)
+uMinNSLabel = Entry(frame)
+uMinNSLabel.place(x=200, y= 1310)
+
+button1Text = Label(frame, text = "Управление на основе минимизации математического ожидания \n локального квадратичного функционала по оценкам состояния \n при полном измерении:")
+button1Text.place(x = 0, y= 1330)
+button1=Button(frame,text='вывести графики',width=15,height=1)
+button1.place(x=130, y= 1380)
+
+button2Text = Label(frame, text = "Управление на основе минимизации математического ожидания \n локального квадратичного функционала по оценкам состояния \n при неполном измерении:")
+button2Text.place(x = 0, y= 1410)
+button2=Button(frame,text='вывести графики',width=15,height=1)
+button2.place(x=130, y= 1460)
+
+t15Label = Label(frame, text="Для адаптивного управления введите следующие параметры:")
+t15Label.place(x=0, y = 1490 )
+
+Ptheta0SLLabel = Label(frame, text="Ptheta0 - ")
+Ptheta0SLLabel.place(x=0, y=1510)
+Ptheta0SLabel = Label(frame, text="Ptheta0 = ")
+Ptheta0SLabel.place(x=0, y= 1530)
+Ptheta0S = SimpleTableInput(frame, 4,4)
+Ptheta0S.place(x=60, y= 1530)
+
+thetaSLLabel = Label(frame, text="theta - неизвестные параметры")
+thetaSLLabel.place(x=0, y=1630)
+thetaSLabel = Label(frame, text="theta = ")
+thetaSLabel.place(x=0, y= 1650)
+thetaS = SimpleTableInput(frame, 1,4)
+thetaS.place(x=60, y= 1650)
+
+button3=Button(frame,text='вывести графики',width=15,height=1)
+button3.place(x=130, y= 1680)
+
+real_root.geometry('600x2000')
+real_root.title("Адаптивные системы")
+
+real_root.mainloop()
+
+
+
+
